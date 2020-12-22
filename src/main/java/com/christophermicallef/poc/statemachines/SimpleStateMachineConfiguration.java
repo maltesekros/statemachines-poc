@@ -3,6 +3,7 @@ package com.christophermicallef.poc.statemachines;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.StateMachinePersist;
+import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
@@ -31,13 +32,20 @@ public class SimpleStateMachineConfiguration extends StateMachineConfigurerAdapt
                     new HashSet<>(Arrays.asList(States.WAITING_CONFIRMATION)));
     }
 
+    @Bean
+    public Action<States, Events> sendEmail() {
+        return ctx -> System.out.println("* * * Sending email ... * * *");
+    }
+
+
     @Override
     public void configure(
             StateMachineTransitionConfigurer<States, Events> transitions)
             throws Exception {
 
         transitions.withExternal()
-            .source(States.SHOW_REGISTRATION_FORM).target(States.WAITING_CONFIRMATION).event(Events.ENTER_CORRECT_CUSTOMER_DETAILS).and()
+            .source(States.SHOW_REGISTRATION_FORM).target(States.WAITING_CONFIRMATION).event(Events.ENTER_CORRECT_CUSTOMER_DETAILS)
+                .action(sendEmail()).and()
             .withExternal()
             .source(States.WAITING_CONFIRMATION).target(States.USER_REGISTERED).event(Events.RECEIVE_EMAIL_CONFIRMATION);
     }
