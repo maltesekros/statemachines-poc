@@ -17,6 +17,7 @@ public class RegistrationService {
 
     public boolean saveCorrectCustomerDetails(String name) throws Exception {
         StateMachine stateMachine = getStateMachine(name);
+        stateMachine.getExtendedState().getVariables().put("name", name);
         boolean result = stateMachine.sendEvent(Events.ENTER_CORRECT_CUSTOMER_DETAILS);
         persister.persist(stateMachine, name);
         return result;

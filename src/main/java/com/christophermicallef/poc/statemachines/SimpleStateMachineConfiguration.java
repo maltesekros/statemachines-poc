@@ -10,6 +10,7 @@ import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
+import org.springframework.statemachine.guard.Guard;
 import org.springframework.statemachine.listener.StateMachineListenerAdapter;
 import org.springframework.statemachine.persist.DefaultStateMachinePersister;
 import org.springframework.statemachine.persist.StateMachinePersister;
@@ -44,16 +45,31 @@ public class SimpleStateMachineConfiguration extends StateMachineConfigurerAdapt
         return ctx -> System.out.println("* * * Registering user ... * * *");
     }
 
+    @Bean
+    public Guard<States, Events> validNameGuard() {
+        return context -> {
+            String name = (String)context.getExtendedState().getVariables().get("name");
+            if (name == null || name.trim().length() == 0 || name.matches(".*\\d.*")) {
+                return false;
+            }
+            return true;
+        };
+    }
+
     @Override
     public void configure(
             StateMachineTransitionConfigurer<States, Events> transitions)
             throws Exception {
 
         transitions.withExternal()
-            .source(States.SHOW_REGISTRATION_FORM).target(States.WAITING_CONFIRMATION).event(Events.ENTER_CORRECT_CUSTOMER_DETAILS)
-                .action(sendConfirmationEmail()).and()
+            .source(States.SHOW_REGISTRATION_FORM).target(States.WAITING_CONFIRMATION)
+                .event(Events.ENTER_CORRECT_CUSTOMER_DETAILS)
+                .action(sendConfirmationEmail())
+                .guard(validNameGuard())
+            .and()
             .withExternal()
-            .source(States.WAITING_CONFIRMATION).target(States.USER_REGISTERED).event(Events.RECEIVE_EMAIL_CONFIRMATION)
+            .source(States.WAITING_CONFIRMATION).target(States.USER_REGISTERED)
+                .event(Events.RECEIVE_EMAIL_CONFIRMATION)
                 .action(registerUser());
     }
 
