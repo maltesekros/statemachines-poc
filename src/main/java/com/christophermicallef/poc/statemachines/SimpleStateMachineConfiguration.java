@@ -2,6 +2,7 @@ package com.christophermicallef.poc.statemachines;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
 import org.springframework.statemachine.StateMachinePersist;
 import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
@@ -13,6 +14,7 @@ import org.springframework.statemachine.listener.StateMachineListenerAdapter;
 import org.springframework.statemachine.persist.DefaultStateMachinePersister;
 import org.springframework.statemachine.persist.StateMachinePersister;
 import org.springframework.statemachine.state.State;
+import org.springframework.statemachine.transition.Transition;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,10 +35,14 @@ public class SimpleStateMachineConfiguration extends StateMachineConfigurerAdapt
     }
 
     @Bean
-    public Action<States, Events> sendEmail() {
+    public Action<States, Events> sendConfirmationEmail() {
         return ctx -> System.out.println("* * * Sending email ... * * *");
     }
 
+    @Bean
+    public Action<States, Events> registerUser() {
+        return ctx -> System.out.println("* * * Registering user ... * * *");
+    }
 
     @Override
     public void configure(
@@ -45,9 +51,10 @@ public class SimpleStateMachineConfiguration extends StateMachineConfigurerAdapt
 
         transitions.withExternal()
             .source(States.SHOW_REGISTRATION_FORM).target(States.WAITING_CONFIRMATION).event(Events.ENTER_CORRECT_CUSTOMER_DETAILS)
-                .action(sendEmail()).and()
+                .action(sendConfirmationEmail()).and()
             .withExternal()
-            .source(States.WAITING_CONFIRMATION).target(States.USER_REGISTERED).event(Events.RECEIVE_EMAIL_CONFIRMATION);
+            .source(States.WAITING_CONFIRMATION).target(States.USER_REGISTERED).event(Events.RECEIVE_EMAIL_CONFIRMATION)
+                .action(registerUser());
     }
 
     @Override
@@ -61,7 +68,15 @@ public class SimpleStateMachineConfiguration extends StateMachineConfigurerAdapt
     private static final class StateMachineListener extends StateMachineListenerAdapter<States, Events> {
         @Override
         public void stateChanged(State<States, Events> from, State<States, Events> to) {
-            System.out.println("Customer state changed to " + to.getId());
+            System.out.printf("Customer state changed to %s%n", to.getId());
+        }
+        @Override
+        public void eventNotAccepted(Message<Events> event) {
+            System.out.printf("Event not accepted %s%n", event.toString());
+        }
+        @Override
+        public void transition(Transition<States, Events> transition) {
+            System.out.printf("Transition %s -> %s%n", transition.getSource() != null ? transition.getSource().getId() : "null", transition.getTarget().getId());
         }
     }
 
